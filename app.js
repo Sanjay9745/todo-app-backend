@@ -95,7 +95,9 @@ app.post("/api/register", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-app.get("/api/protected", userAuth);
+app.get("/api/protected", userAuth, (req, res) => {
+  res.status(200).json({ message: "success" });
+});
 app.get("/api/user-details", userAuth, async (req, res) => {
   try {
     const user = await User.findOne({ _id: req.user._id });
