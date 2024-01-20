@@ -62,38 +62,48 @@ app.post("/api/login", async (req, res) => {
   } catch (error) {}
 });
 app.post("/api/register", async (req, res) => {
-    try {
-      const { name, email, password } = req.body;
-  
-      // Validate, hash password, and save to the database
-      const salt = await bcrypt.genSalt(10);
-      const hashPassword = await bcrypt.hash(password, salt);
-  
-      // Check if the email already exists
-      const existingUser = await User.findOne({ email: email });
-      if (existingUser) {
-        return res.status(400).json({ error: "Email already exists" });
-      }
-  
-      // Create a new user
-      const newUser = new User({
-        name: name,
-        email: email,
-        password: hashPassword,
-      });
-  
-      // Save the new user to the database
-      await newUser.save();
-  
-      // Create and send a JWT token
-      const token = jwt.sign({ _id: newUser._id }, process.env.JWT_SECRET);
-      res.status(200).json({ message: "User created successfully", token: token });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Internal Server Error" });
+  try {
+    const { name, email, password } = req.body;
+
+    // Validate, hash password, and save to the database
+    const salt = await bcrypt.genSalt(10);
+    const hashPassword = await bcrypt.hash(password, salt);
+
+    // Check if the email already exists
+    const existingUser = await User.findOne({ email: email });
+    if (existingUser) {
+      return res.status(400).json({ error: "Email already exists" });
     }
-  })
+
+    // Create a new user
+    const newUser = new User({
+      name: name,
+      email: email,
+      password: hashPassword,
+    });
+
+    // Save the new user to the database
+    await newUser.save();
+
+    // Create and send a JWT token
+    const token = jwt.sign({ _id: newUser._id }, process.env.JWT_SECRET);
+    res
+      .status(200)
+      .json({ message: "User created successfully", token: token });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 app.get("/api/protected", userAuth);
+app.get("/api/user-details", userAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ _id: req.user._id });
+    res.status(200).json({ message: "success", user: user });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
 app.get("/api/todo", userAuth, async (req, res) => {
   try {
     const user = await User.findOne({ _id: req.user._id });
@@ -108,7 +118,7 @@ app.post("/api/add-todo", userAuth, async (req, res) => {
     const user = await User.findOne({ _id: req.user._id });
     user.todoList.push({ date: Date.now(), task: task, isCompleted: false });
     await user.save();
-    res.status(200).json({ message: "success" , todoList: user.todoList});
+    res.status(200).json({ message: "success", todoList: user.todoList });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -126,34 +136,36 @@ app.delete("/api/delete-todo/:id", userAuth, async (req, res) => {
   }
 });
 app.post("/api/update-todo", userAuth, async (req, res) => {
-    try {
-      const { task, isCompleted, id } = req.body;
-      console.log(req.body);
-      const user = await User.findOne({ _id: req.user._id });
-  
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-  
-      user.todoList = user.todoList.map((todo) => {
-        if (todo._id == id) {
-          todo.task = task || todo.task;
-          todo.isCompleted =  !todo.isCompleted;
-        }
-        return todo;
-      });
-  
-      await user.save();
-      console.log(user.todoList);
-  
-      // Send a success response to the client
-      res.status(200).json({ message: 'Todo updated successfully', todoList: user.todoList });
-    } catch (error) {
-      // Handle errors and send an appropriate response
-      console.error(error.message);
-      res.status(500).json({ message: 'Internal Server Error' });
+  try {
+    const { task, isCompleted, id } = req.body;
+    console.log(req.body);
+    const user = await User.findOne({ _id: req.user._id });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
-  });
+
+    user.todoList = user.todoList.map((todo) => {
+      if (todo._id == id) {
+        todo.task = task || todo.task;
+        todo.isCompleted = !todo.isCompleted;
+      }
+      return todo;
+    });
+
+    await user.save();
+    console.log(user.todoList);
+
+    // Send a success response to the client
+    res
+      .status(200)
+      .json({ message: "Todo updated successfully", todoList: user.todoList });
+  } catch (error) {
+    // Handle errors and send an appropriate response
+    console.error(error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
 
 app.listen(port, () => {
   console.log(`server is running on port ${port}`);
