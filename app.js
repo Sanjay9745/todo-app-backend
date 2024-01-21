@@ -8,6 +8,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const moment = require('moment');
 //connect to db
 mongoose
   .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/todo-app")
@@ -21,7 +22,7 @@ const userSchema = new mongoose.Schema({
   password: String,
   todoList: [
     {
-      date: Date,
+      date: String,
       task: String,
       isCompleted: Boolean,
     },
@@ -114,11 +115,51 @@ app.get("/api/todo", userAuth, async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+//get too with date
+app.get("/api/todo-list/:date", userAuth, async (req, res) => {
+  try {
+    const { date } = req.params;
+    const user = await User.findOne({ _id: req.user._id });
+    if(date===""){
+      const currentDate = moment();
+
+      // Format the date as "YYYY-M-D"
+      const formattedDate = currentDate.format('YYYY-MM-DD');
+      date = formattedDate;
+    }
+    // Filter todos based on the provided date
+    const todosForDate = user.todoList.filter((item) => item.date === date);
+
+    console.log(date, todosForDate);
+
+    res.status(200).json({ message: "success", todoList: todosForDate });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+//add todo with date
+app.post("/api/add-todo-with-date", userAuth, async (req, res) => {
+  try {
+    const { task, date } = req.body;
+
+    const user = await User.findOne({ _id: req.user._id });
+    user.todoList.push({ date: date, task: task, isCompleted: false });
+    await user.save();
+    res.status(200).json({ message: "success", todoList: user.todoList });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
 app.post("/api/add-todo", userAuth, async (req, res) => {
   try {
     const { task } = req.body;
     const user = await User.findOne({ _id: req.user._id });
-    user.todoList.push({ date: Date.now(), task: task, isCompleted: false });
+    const currentDate = moment();
+
+// Format the date as "YYYY-M-D"
+const formattedDate = currentDate.format('YYYY-MM-DD');
+    user.todoList.push({ date: formattedDate, task: task, isCompleted: false });
     await user.save();
     res.status(200).json({ message: "success", todoList: user.todoList });
   } catch (error) {
