@@ -50,6 +50,7 @@ const userAuth = (req, res, next) => {
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    if(!email || !password) return res.status(400).send("all fields are required");
     //check if user exists
     const user = await User.findOne({ email: email });
     if (!user) return res.status(400).send("user does not exist");
@@ -66,6 +67,9 @@ app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
     // Validate, hash password, and save to the database
     const salt = await bcrypt.genSalt(10);
     const hashPassword = await bcrypt.hash(password, salt);
