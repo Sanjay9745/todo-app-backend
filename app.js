@@ -38,7 +38,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
   // Access the Origin header from the request
   const origin = req.headers.origin;
-
+  console.log(req.headers);
   // Log the origin of the request
   console.log("Request Origin:", origin);
 
@@ -58,6 +58,9 @@ const userAuth = (req, res, next) => {
     res.status(400).send("invalid token");
   }
 };
+app.get("/",async(req,res)=>{
+  res.send("welcome todo")
+})
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
